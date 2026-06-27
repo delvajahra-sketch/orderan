@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>JokiTrack</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f0f13;--bg2:#17171e;--bg3:#1e1e28;--card:#1a1a24;
+  --border:#2a2a38;--border2:#35354a;
+  --accent:#7c6fff;--accent2:#6358e8;
+  --green:#22c97a;--red:#ff4f4f;--yellow:#f5c518;--orange:#ff7c3a;
+  --text:#eeeef5;--text2:#9999b3;--text3:#55556a;
+  --r:12px;--rsm:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;overflow-x:hidden}
+
+/* NAV BOTTOM (mobile-first) */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;cursor:pointer;border:none;background:none;color:var(--text3);font-size:10px;gap:4px;transition:color 0.15s}
+.bnav-tab .icon{font-size:22px;line-height:1}
+.bnav-tab.active{color:var(--accent)}
+.bnav-tab.active .icon{color:var(--accent)}
+
+/* PAGES */
+.page{display:none;padding:14px 14px calc(70px + env(safe-area-inset-bottom)) 14px;min-height:100vh}
+.page.active{display:block}
+
+/* PAGE HEADER */
+.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.page-title{font-size:18px;font-weight:700;letter-spacing:-0.3px}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* TOAST */
+#toast{position:fixed;top:14px;right:14px;left:14px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-item{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rsm);padding:11px 14px;font-size:13px;display:flex;align-items:center;gap:10px;animation:slideDown 0.2s ease;pointer-events:auto}
+.toast-item.danger{border-color:var(--red)}
+.toast-item.success{border-color:var(--green)}
+.toast-item.warn{border-color:var(--yellow)}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.toast-dot.danger{background:var(--red)}
+.toast-dot.success{background:var(--green)}
+.toast-dot.warn{background:var(--yellow)}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ALERT */
+.alert{border-radius:var(--rsm);padding:10px 13px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.alert.danger{background:rgba(255,79,79,0.1);border:1px solid rgba(255,79,79,0.25);color:#ff8080}
+.alert.warn{background:rgba(245,197,24,0.1);border:1px solid rgba(245,197,24,0.25);color:#f5c518}
+.alert.success{background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.25);color:#22c97a}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stats-grid.three{grid-template-columns:1fr 1fr 1fr}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 13px}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.stat-val{font-size:18px;font-weight:700;line-height:1}
+.stat-val.green{color:var(--green)}.stat-val.red{color:var(--red)}.stat-val.yellow{color:var(--yellow)}.stat-val.accent{color:var(--accent)}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* SECTION TITLE */
+.sec{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin:18px 0 10px}
+.sec:first-child{margin-top:0}
+
+/* ORDER CARD */
+.order-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;margin-bottom:9px}
+.order-card.urgent{border-color:rgba(255,79,79,0.45)}
+.order-card.warn-border{border-color:rgba(245,197,24,0.45)}
+.order-card.done{opacity:0.45}
+.order-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:7px}
+.order-num{font-size:15px;font-weight:700;color:var(--accent)}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.b-red{background:rgba(255,79,79,0.15);color:var(--red)}
+.b-yellow{background:rgba(245,197,24,0.15);color:var(--yellow)}
+.b-green{background:rgba(34,201,122,0.15);color:var(--green)}
+.b-accent{background:rgba(124,111,255,0.15);color:var(--accent)}
+.b-gray{background:var(--bg3);color:var(--text3)}
+.order-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.order-meta{font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:3px}
+.order-meta span{display:flex;align-items:center;gap:4px}
+.order-fee{font-size:15px;font-weight:700;color:var(--green);white-space:nowrap}
+.order-detail{font-size:11px;color:var(--text3);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.order-btns{display:flex;gap:6px;margin-top:10px;justify-content:flex-end}
+.countdown{font-size:11px;font-weight:600}
+.countdown.urgent{color:var(--red)}.countdown.warn{color:var(--yellow)}.countdown.ok{color:var(--green)}
+
+/* BUTTONS */
+.btn{padding:9px 16px;border-radius:var(--rsm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:active{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:active{background:var(--bg3)}
+.btn-danger{background:rgba(255,79,79,0.12);color:var(--red);border:1px solid rgba(255,79,79,0.25)}
+.btn-danger:active{background:rgba(255,79,79,0.22)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text3);white-space:nowrap;transition:all 0.15s}
+.filter-btn.active{background:rgba(124,111,255,0.15);color:var(--accent);border-color:var(--accent)}
+
+/* FORM */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+.field:last-child{margin-bottom:0}
+label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);padding:10px 12px;font-size:14px;font-family:inherit;width:100%;outline:none;transition:border 0.15s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239999b3' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r) var(--r) 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));width:100%;max-height:92vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:16px}
+.modal-btns{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+
+/* EXPENSE */
+.expense-item{background:var(--card);border:1px solid var(--border);border-radius:var(--rsm);padding:11px 13px;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.exp-info{flex:1;min-width:0}
+.exp-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-time{font-size:11px;color:var(--text3);margin-top:2px}
+.exp-amt{font-size:14px;font-weight:700;color:var(--red);white-space:nowrap;margin:0 10px}
+.exp-del{background:transparent;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0}
+
+/* CICILAN */
+.cicilan-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:9px}
+.cic-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:10px}
+.cic-name{font-size:14px;font-weight:700}
+.cic-amt{font-size:16px;font-weight:700;color:var(--orange);white-space:nowrap}
+.cic-detail{font-size:12px;color:var(--text2);margin-bottom:8px}
+.progress-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.3s}
+.cic-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.cic-pct{font-size:11px;color:var(--text3)}
+.cic-btns{display:flex;gap:6px}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--text3);font-size:13px;line-height:1.6}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:0.4}
+
+/* CLOCK BAR */
+.clock-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.clock-time{font-size:13px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.clock-date{font-size:11px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="clock-bar">
+  <div class="clock-time" id="clock">00:00:00</div>
+  <div class="clock-date" id="clockDate"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- PAGE DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div id="dash-alerts"></div>
+  <div class="stats-grid" id="dash-stats"></div>
+  <div class="sec">Deadline mendekat</div>
+  <div id="dash-orders"></div>
+</div>
+
+<!-- PAGE ORDER -->
+<div class="page" id="page-orders">
+  <div class="page-hdr">
+    <div><div class="page-title">Order</div><div class="page-sub">Tersimpan di browser ini</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('mo-order')">+ Tambah</button>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn active" id="f-all" onclick="filterOrders('all')">Semua</button>
+    <button class="filter-btn" id="f-pending" onclick="filterOrders('pending')">Belum</button>
+    <button class="filter-btn" id="f-progress" onclick="filterOrders('progress')">Dikerjakan</button>
+    <button class="filter-btn" id="f-done" onclick="filterOrders('done')">Selesai</button>
+  </div>
+  <div id="orders-list"></div>
+</div>
+
+<!-- PAGE PENGELUARAN -->
+<div class="page" id="page-expenses">
+  <div class="page-hdr">
+    <div><div class="page-title">Pengeluaran</div><div class="page-sub">Limit harian Rp 50.000</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('mo-expense')">+ Catat</button>
+  </div>
+  <div id="expense-alerts"></div>
+  <div class="stats-grid three" id="expense-stats"></div>
+  <div class="sec">Hari ini</div>
+  <div id="expense-list"></div>
+</div>
+
+<!-- PAGE CICILAN -->
+<div class="page" id="page-cicilan">
+  <div class="page-hdr">
+    <div><div class="page-title">Cicilan</div><div class="page-sub">Tracker pembayaran</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="openAddCicilan()">+ Tambah</button>
+  </div>
+  <div id="cicilan-list"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bnav-tab active" onclick="showPage('dashboard',this)">
+    <span class="icon">⚡</span><span>Dashboard</span>
+  </button>
+  <button class="bnav-tab" onclick="showPage('orders',this)">
+    <span class="icon">📋</span><span>Order</span>
+  </button>
+  <button class="bnav-tab" onclick="showPage('expenses',this)">
+    <span class="icon">💸</span><span>Keluar</span>
+  </button>
+  <button class="bnav-tab" onclick="showPage('cicilan',this)">
+    <span class="icon">💳</span><span>Cicilan</span>
+  </button>
+</nav>
+
+<!-- MODAL TAMBAH ORDER -->
+<div class="modal-overlay" id="mo-order">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Tambah order baru</div>
+    <div class="field">
+      <label>Nomor hunter / cust</label>
+      <input type="text" id="o-num" placeholder="cth: 0812xxx / H-001">
+    </div>
+    <div class="field">
+      <label>Grup asal order</label>
+      <input type="text" id="o-grup" placeholder="cth: Grup A, WA Pribadi">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Deadline</label>
+        <input type="datetime-local" id="o-dl">
+      </div>
+      <div class="field">
+        <label>Fee (Rp)</label>
+        <input type="number" id="o-fee" placeholder="50000" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label>Detail tugas</label>
+      <textarea id="o-detail" placeholder="cth: Essay 5 halaman tema lingkungan, format APA..."></textarea>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="o-status">
+        <option value="pending">Belum dikerjakan</option>
+        <option value="progress">Sedang dikerjakan</option>
+        <option value="done">Selesai</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary btn-full" onclick="saveOrder()">Simpan order</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal('mo-order')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT ORDER -->
+<div class="modal-overlay" id="mo-edit">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit order</div>
+    <input type="hidden" id="edit-id">
+    <div class="field">
+      <label>Nomor hunter / cust</label>
+      <input type="text" id="edit-num">
+    </div>
+    <div class="field">
+      <label>Grup asal order</label>
+      <input type="text" id="edit-grup">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Deadline</label>
+        <input type="datetime-local" id="edit-dl">
+      </div>
+      <div class="field">
+        <label>Fee (Rp)</label>
+        <input type="number" id="edit-fee" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label>Detail tugas</label>
+      <textarea id="edit-detail"></textarea>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="edit-status">
+        <option value="pending">Belum dikerjakan</option>
+        <option value="progress">Sedang dikerjakan</option>
+        <option value="done">Selesai</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary btn-full" onclick="updateOrder()">Simpan perubahan</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal('mo-edit')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENGELUARAN -->
+<div class="modal-overlay" id="mo-expense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Catat pengeluaran</div>
+    <div class="field">
+      <label>Keterangan</label>
+      <input type="text" id="e-name" placeholder="cth: makan siang, bensin">
+    </div>
+    <div class="field">
+      <label>Jumlah (Rp)</label>
+      <input type="number" id="e-amount" placeholder="25000" inputmode="numeric">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary btn-full" onclick="saveExpense()">Simpan</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal('mo-expense')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CICILAN -->
+<div class="modal-overlay" id="mo-cicilan">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Tambah / edit cicilan</div>
+    <input type="hidden" id="cic-id">
+    <div class="field">
+      <label>Nama cicilan</label>
+      <input type="text" id="cic-name" placeholder="cth: Cicilan HP, Laptop">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Total hutang (Rp)</label>
+        <input type="number" id="cic-total" placeholder="80000000" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Per bulan (Rp)</label>
+        <input type="number" id="cic-monthly" placeholder="500000" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Sudah bayar (bln)</label>
+        <input type="number" id="cic-paid" placeholder="0" min="0" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Total tenor (bln)</label>
+        <input type="number" id="cic-tenor" placeholder="24" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label>Tanggal jatuh tempo (tgl berapa tiap bulan)</label>
+      <input type="number" id="cic-due" placeholder="5" min="1" max="31" inputmode="numeric">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary btn-full" onclick="saveCicilan()">Simpan</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal('mo-cicilan')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LIMIT=50000;
+let curFilter='all';
+
+const getData=(k,d=[])=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+const setData=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const fmtRp=n=>'Rp '+Number(n).toLocaleString('id-ID');
+const todayStr=()=>new Date().toISOString().split('T')[0];
+const fmtDate=dt=>{
+  if(!dt)return'-';
+  const d=new Date(dt);
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+};
+
+function countdown(dtStr){
+  if(!dtStr)return{text:'-',cls:'ok'};
+  const diff=new Date(dtStr)-new Date();
+  if(diff<0)return{text:'LEWAT DL!',cls:'urgent'};
+  const h=Math.floor(diff/3600000);
+  const d=Math.floor(h/24);
+  const m=Math.floor((diff%3600000)/60000);
+  if(h<1)return{text:m+'m lagi',cls:'urgent'};
+  if(h<6)return{text:h+'j '+m+'m lagi',cls:'urgent'};
+  if(h<24)return{text:h+'j lagi',cls:'warn'};
+  return{text:d+'h lagi',cls:'ok'};
+}
+
+function statusBadge(s){
+  if(s==='done')return'<span class="badge b-green">Selesai</span>';
+  if(s==='progress')return'<span class="badge b-accent">Dikerjakan</span>';
+  return'<span class="badge b-gray">Belum</span>';
+}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  const el=document.createElement('div');
+  el.className='toast-item '+type;
+  el.innerHTML=`<div class="toast-dot ${type}"></div><span style="flex:1;font-size:13px">${msg}</span>`;
+  t.appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function showPage(p,tab){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.bnav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(tab)tab.classList.add('active');
+  if(p==='dashboard')renderDashboard();
+  if(p==='orders')renderOrders();
+  if(p==='expenses')renderExpenses();
+  if(p==='cicilan')renderCicilan();
+}
+
+/* ORDERS */
+function saveOrder(){
+  const num=document.getElementById('o-num').value.trim();
+  const dl=document.getElementById('o-dl').value;
+  if(!num||!dl){showToast('Nomor hunter dan deadline wajib!','danger');return}
+  const orders=getData('orders');
+  orders.push({id:Date.now(),num,grup:document.getElementById('o-grup').value.trim(),dl,fee:document.getElementById('o-fee').value,detail:document.getElementById('o-detail').value.trim(),status:document.getElementById('o-status').value,created:new Date().toISOString()});
+  setData('orders',orders);
+  closeModal('mo-order');
+  ['o-num','o-grup','o-dl','o-fee','o-detail'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('o-status').value='pending';
+  renderOrders();renderDashboard();
+  showToast('Order disimpan!','success');
+}
+
+function filterOrders(f){
+  curFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('f-'+f).classList.add('active');
+  renderOrders();
+}
+
+function orderCard(o,actions=false){
+  const cd=countdown(o.dl);
+  const urgent=cd.cls==='urgent'&&o.status!=='done';
+  const warn=cd.cls==='warn'&&o.status!=='done';
+  return`<div class="order-card ${urgent?'urgent':''} ${warn?'warn-border':''} ${o.status==='done'?'done':''}">
+    <div class="order-top">
+      <span class="order-num">#${o.num}</span>
+      ${statusBadge(o.status)}
+      <span class="countdown ${o.status==='done'?'ok':cd.cls}">${o.status==='done'?'✓ Selesai':cd.text}</span>
+    </div>
+    <div class="order-meta">
+      <span>📅 ${fmtDate(o.dl)}</span>
+      ${o.grup?`<span>📢 ${o.grup}</span>`:''}
+    </div>
+    ${o.fee?`<div style="margin-top:5px"><span class="order-fee">${fmtRp(o.fee)}</span></div>`:''}
+    ${o.detail?`<div class="order-detail">📋 ${o.detail}</div>`:''}
+    ${actions?`<div class="order-btns">
+      <button class="btn btn-ghost btn-sm" onclick="editOrder(${o.id})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">Hapus</button>
+    </div>`:''}
+  </div>`;
+}
+
+function renderOrders(){
+  let orders=getData('orders');
+  if(curFilter!=='all')orders=orders.filter(o=>o.status===curFilter);
+  orders.sort((a,b)=>new Date(a.dl)-new Date(b.dl));
+  const el=document.getElementById('orders-list');
+  if(!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Belum ada order.<br>Tap "+ Tambah" untuk mulai.</div>';return}
+  el.innerHTML=orders.map(o=>orderCard(o,true)).join('');
+}
+
+function editOrder(id){
+  const o=getData('orders').find(x=>x.id===id);
+  if(!o)return;
+  document.getElementById('edit-id').value=id;
+  document.getElementById('edit-num').value=o.num;
+  document.getElementById('edit-grup').value=o.grup||'';
+  document.getElementById('edit-dl').value=o.dl;
+  document.getElementById('edit-fee').value=o.fee||'';
+  document.getElementById('edit-detail').value=o.detail||'';
+  document.getElementById('edit-status').value=o.status;
+  openModal('mo-edit');
+}
+
+function updateOrder(){
+  const id=parseInt(document.getElementById('edit-id').value);
+  const orders=getData('orders');
+  const idx=orders.findIndex(x=>x.id===id);
+  if(idx===-1)return;
+  orders[idx]={...orders[idx],num:document.getElementById('edit-num').value.trim(),grup:document.getElementById('edit-grup').value.trim(),dl:document.getElementById('edit-dl').value,fee:document.getElementById('edit-fee').value,detail:document.getElementById('edit-detail').value.trim(),status:document.getElementById('edit-status').value};
+  setData('orders',orders);
+  closeModal('mo-edit');
+  renderOrders();renderDashboard();
+  showToast('Order diperbarui!','success');
+}
+
+function deleteOrder(id){
+  if(!confirm('Hapus order ini?'))return;
+  setData('orders',getData('orders').filter(x=>x.id!==id));
+  renderOrders();renderDashboard();
+  showToast('Order dihapus','warn');
+}
+
+/* EXPENSES */
+function saveExpense(){
+  const name=document.getElementById('e-name').value.trim();
+  const amount=parseFloat(document.getElementById('e-amount').value);
+  if(!name||!amount){showToast('Isi keterangan dan jumlah ya!','danger');return}
+  const expenses=getData('expenses');
+  expenses.push({id:Date.now(),name,amount,date:todayStr(),time:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})});
+  setData('expenses',expenses);
+  document.getElementById('e-name').value='';
+  document.getElementById('e-amount').value='';
+  closeModal('mo-expense');
+  renderExpenses();
+  const total=getData('expenses').filter(e=>e.date===todayStr()).reduce((s,e)=>s+e.amount,0);
+  if(total>LIMIT)showToast(`⛔ Pengeluaran ${fmtRp(total)} melebihi limit!`,'danger');
+  else showToast('Pengeluaran dicatat!','success');
+}
+
+function deleteExpense(id){
+  setData('expenses',getData('expenses').filter(x=>x.id!==id));
+  renderExpenses();
+}
+
+function renderExpenses(){
+  const expenses=getData('expenses');
+  const today=expenses.filter(e=>e.date===todayStr());
+  const total=today.reduce((s,e)=>s+e.amount,0);
+  const sisa=Math.max(0,LIMIT-total);
+  const pct=Math.min(100,Math.round(total/LIMIT*100));
+  const alerts=document.getElementById('expense-alerts');
+  if(total>LIMIT)alerts.innerHTML=`<div class="alert danger">⛔ Melebihi limit! Pengeluaran ${fmtRp(total)} dari ${fmtRp(LIMIT)}. Kurangi ya!</div>`;
+  else if(total>LIMIT*0.8)alerts.innerHTML=`<div class="alert warn">⚠️ Hampir habis! Sudah pakai ${pct}% dari limit. Sisa ${fmtRp(sisa)}.</div>`;
+  else alerts.innerHTML=`<div class="alert success">✅ Aman. Sisa ${fmtRp(sisa)} hari ini.</div>`;
+  document.getElementById('expense-stats').innerHTML=`
+    <div class="stat"><div class="stat-lbl">Hari ini</div><div class="stat-val ${total>LIMIT?'red':'green'}">${fmtRp(total)}</div><div class="stat-sub">${pct}% limit</div></div>
+    <div class="stat"><div class="stat-lbl">Sisa</div><div class="stat-val ${sisa===0?'red':'yellow'}">${fmtRp(sisa)}</div></div>
+    <div class="stat"><div class="stat-lbl">Transaksi</div><div class="stat-val accent">${today.length}</div><div class="stat-sub">hari ini</div></div>
+  `;
+  const list=document.getElementById('expense-list');
+  if(!today.length){list.innerHTML='<div class="empty"><div class="empty-icon">💸</div>Belum ada pengeluaran hari ini.</div>';return}
+  list.innerHTML=[...today].reverse().map(e=>`
+    <div class="expense-item">
+      <div class="exp-info"><div class="exp-name">${e.name}</div><div class="exp-time">${e.time}</div></div>
+      <div class="exp-amt">${fmtRp(e.amount)}</div>
+      <button class="exp-del" onclick="deleteExpense(${e.id})">×</button>
+    </div>
+  `).join('');
+}
+
+/* CICILAN */
+function openAddCicilan(){
+  ['cic-id','cic-name','cic-total','cic-monthly','cic-paid','cic-tenor','cic-due'].forEach(id=>document.getElementById(id).value='');
+  openModal('mo-cicilan');
+}
+
+function saveCicilan(){
+  const name=document.getElementById('cic-name').value.trim();
+  if(!name){showToast('Nama cicilan wajib!','danger');return}
+  const cicilans=getData('cicilans');
+  const id=document.getElementById('cic-id').value;
+  const data={id:id?parseInt(id):Date.now(),name,total:parseFloat(document.getElementById('cic-total').value)||0,monthly:parseFloat(document.getElementById('cic-monthly').value)||0,paid:parseInt(document.getElementById('cic-paid').value)||0,tenor:parseInt(document.getElementById('cic-tenor').value)||0,due:parseInt(document.getElementById('cic-due').value)||1};
+  const idx=cicilans.findIndex(x=>x.id===data.id);
+  if(idx>-1)cicilans[idx]=data;else cicilans.push(data);
+  setData('cicilans',cicilans);
+  closeModal('mo-cicilan');
+  renderCicilan();
+  showToast('Cicilan disimpan!','success');
+}
+
+function editCicilan(id){
+  const c=getData('cicilans').find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('cic-id').value=c.id;
+  document.getElementById('cic-name').value=c.name;
+  document.getElementById('cic-total').value=c.total;
+  document.getElementById('cic-monthly').value=c.monthly;
+  document.getElementById('cic-paid').value=c.paid;
+  document.getElementById('cic-tenor').value=c.tenor;
+  document.getElementById('cic-due').value=c.due;
+  openModal('mo-cicilan');
+}
+
+function deleteCicilan(id){
+  if(!confirm('Hapus cicilan ini?'))return;
+  setData('cicilans',getData('cicilans').filter(x=>x.id!==id));
+  renderCicilan();
+}
+
+function renderCicilan(){
+  let cicilans=getData('cicilans');
+  if(!cicilans.length){
+    cicilans=[{id:1,name:'Cicilan 80jt',total:80000000,monthly:0,paid:0,tenor:0,due:1},{id:2,name:'Cicilan laptop',total:2500000,monthly:500000,paid:0,tenor:5,due:5}];
+    setData('cicilans',cicilans);
+  }
+  const today=new Date();
+  const el=document.getElementById('cicilan-list');
+  el.innerHTML=cicilans.map(c=>{
+    const lunas=c.tenor>0&&c.paid>=c.tenor;
+    const pct=c.tenor?Math.min(100,Math.round(c.paid/c.tenor*100)):0;
+    const sisaTotal=Math.max(0,c.total-(c.paid*c.monthly));
+    const dueDate=new Date(today.getFullYear(),today.getMonth(),c.due);
+    const diffDue=Math.ceil((dueDate-today)/86400000);
+    let dueBadge='';
+    if(!lunas){
+      if(diffDue<0)dueBadge='<span class="badge b-red">Terlewat!</span>';
+      else if(diffDue<=3)dueBadge=`<span class="badge b-yellow">Jatuh tempo ${diffDue}h lagi</span>`;
+      else dueBadge=`<span class="badge b-gray">Tgl ${c.due}/bulan</span>`;
+    }
+    return`<div class="cicilan-card" style="${!lunas&&diffDue<=3?'border-color:rgba(245,197,24,0.4)':''}">
+      <div class="cic-top">
+        <div><div class="cic-name">${c.name} ${lunas?'<span class="badge b-green">Lunas!</span>':dueBadge}</div></div>
+        <div class="cic-amt">${fmtRp(c.monthly)}/bln</div>
+      </div>
+      <div class="cic-detail">${c.paid}/${c.tenor} bulan · Sisa ${fmtRp(sisaTotal)}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${lunas?'var(--green)':'var(--accent)'}"></div></div>
+      <div class="cic-footer">
+        <span class="cic-pct">${pct}% terlunasi</span>
+        <div class="cic-btns">
+          <button class="btn btn-ghost btn-sm" onclick="editCicilan(${c.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCicilan(${c.id})">Hapus</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* DASHBOARD */
+function renderDashboard(){
+  const orders=getData('orders');
+  const expenses=getData('expenses');
+  const todayExp=expenses.filter(e=>e.date===todayStr()).reduce((s,e)=>s+e.amount,0);
+  const active=orders.filter(o=>o.status!=='done');
+  const totalFee=orders.filter(o=>o.status==='done').reduce((s,o)=>s+parseFloat(o.fee||0),0);
+  const urgent=active.filter(o=>{const h=(new Date(o.dl)-new Date())/3600000;return h>=0&&h<24});
+  const overdue=active.filter(o=>new Date(o.dl)<new Date());
+  let alertHtml='';
+  if(todayExp>LIMIT)alertHtml+=`<div class="alert danger">⛔ Pengeluaran hari ini ${fmtRp(todayExp)} melebihi limit ${fmtRp(LIMIT)}!</div>`;
+  if(overdue.length)alertHtml+=`<div class="alert danger">🚨 ${overdue.length} order sudah lewat deadline!</div>`;
+  if(urgent.length)alertHtml+=`<div class="alert warn">⚡ ${urgent.length} order deadline dalam 24 jam!</div>`;
+  document.getElementById('dash-alerts').innerHTML=alertHtml;
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat"><div class="stat-lbl">Order aktif</div><div class="stat-val accent">${active.length}</div><div class="stat-sub">${orders.filter(o=>o.status==='done').length} selesai</div></div>
+    <div class="stat"><div class="stat-lbl">Deadline 24j</div><div class="stat-val ${urgent.length?'red':'green'}">${urgent.length}</div><div class="stat-sub">order mendesak</div></div>
+    <div class="stat"><div class="stat-lbl">Fee masuk</div><div class="stat-val green">${fmtRp(totalFee)}</div></div>
+    <div class="stat"><div class="stat-lbl">Keluar hari ini</div><div class="stat-val ${todayExp>LIMIT?'red':'yellow'}">${fmtRp(todayExp)}</div><div class="stat-sub">limit ${fmtRp(LIMIT)}</div></div>
+  `;
+  const top=[...active].sort((a,b)=>new Date(a.dl)-new Date(b.dl)).slice(0,4);
+  const el=document.getElementById('dash-orders');
+  if(!top.length){el.innerHTML='<div class="empty"><div class="empty-icon">⚡</div>Tidak ada order aktif saat ini.</div>';return}
+  el.innerHTML=top.map(o=>orderCard(o,false)).join('');
+}
+
+/* CLOCK */
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clockDate').textContent=now.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'});
+}
+setInterval(updateClock,1000);updateClock();
+
+/* ALARM */
+function checkAlarms(){
+  getData('orders').filter(o=>o.status!=='done').forEach(o=>{
+    const h=(new Date(o.dl)-new Date())/3600000;
+    if(h>0&&h<=1&&h>0.98)showToast(`🔔 Order #${o.num} deadline 1 JAM lagi!`,'danger');
+    if(h>5.98&&h<=6)showToast(`⚠️ Order #${o.num} deadline 6 jam lagi`,'warn');
+    if(h>11.98&&h<=12)showToast(`📢 Order #${o.num} deadline 12 jam lagi`,'warn');
+    if(h>23.98&&h<=24)showToast(`📅 Order #${o.num} deadline besok!`,'warn');
+  });
+}
+setInterval(checkAlarms,60000);
+
+function checkHourly(){
+  if(new Date().getMinutes()===0){
+    const prog=getData('orders').filter(o=>o.status==='progress');
+    if(prog.length)showToast(`⏰ ${prog.length} order sedang dikerjakan!`,'warn');
+  }
+}
+setInterval(checkHourly,60000);
+
+renderDashboard();
+</script>
+</body>
+</html>
